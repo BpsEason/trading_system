@@ -1,6 +1,0 @@
-請生成一個 React TypeScript 功能型元件，用於顯示一個用戶列表。
-需求：
-- 元件名稱：UserList
-- 接收一個名為 `users` 的 props，類型為 `User[]`，其中 `User` 介面包含 `id: string`, `name: string`, `email: string`。
-- 使用 `map` 方法渲染每個用戶的姓名和電子郵件。
-- 每個列表項目應有一個唯一的 key。
