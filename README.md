@@ -1,6 +1,5 @@
 # 智能交易訂單管理系統
 
-[![CI](https://github.com/your-username/trading_system/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/trading_system/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-80%25-green)](https://github.com/your-username/trading_system) <!-- Placeholder, integrate with coverage reports later -->
 [![Mutation Testing](https://img.shields.io/badge/mutation_testing-Passed-brightgreen)](https://github.com/your-username/trading_system) <!-- Placeholder, integrate with mutation testing reports later -->
 
