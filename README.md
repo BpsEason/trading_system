@@ -14,6 +14,170 @@
 - `.github/` GitHub Actions CI/CD 工作流與專案模板
 - `tools/` 專案開發輔助腳本，包含 AI 代碼生成工具
 
+## 關鍵程式碼範例
+
+---
+
+### 1. Django `OrderViewSet`（後端訂單 CRUD + 審計日誌）
+
+```python
+from rest_framework import viewsets
+from .models import Order
+from .serializers import OrderSerializer
+from .audit import AuditLog  # 假設已有審計日誌服務模組
+
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()            # 取出所有訂單
+    serializer_class = OrderSerializer        # 指定使用的序列化器
+
+    def perform_create(self, serializer):
+        # 在建立訂單時，先儲存資料
+        instance = serializer.save()         
+        # 建立一筆 CREATE 操作的審計日誌
+        AuditLog.log_create(self.request.user, instance)  
+```
+
+- `serializer.save()`：新增一筆訂單到資料庫  
+- `AuditLog.log_create(...)`：記錄「誰」「何時」「新增了哪筆訂單」
+
+---
+
+### 2. FastAPI 「計價與風控」接口
+
+```python
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from decimal import Decimal
+from .risk import check_limits
+
+app = FastAPI(title="Pricing Service")
+
+class PriceRequest(BaseModel):
+    user_id: str  = Field(..., example="user123", description="使用者 ID")
+    amount: Decimal = Field(..., gt=0, description="交易金額，必須大於 0")
+    currency: str   = Field(..., regex="^(USD|EUR|JPY)$", description="貨幣：USD/EUR/JPY")
+
+@app.post("/price")
+async def price(req: PriceRequest):
+    # 風控檢查：檢驗金額、貨幣是否合規
+    ok, msg = check_limits(req.amount, req.currency)
+    if not ok:
+        # 超限或格式錯誤，回 400 並帶出錯誤訊息
+        raise HTTPException(status_code=400, detail={"message": msg})
+
+    # 計算最終價格（範例：加 0.1%）
+    final_price = req.amount * Decimal("1.001")
+    return {
+        "allowed": True,                   # 交易是否可執行
+        "price": final_price,              # 最終成交價格
+        "message": "交易獲准"              # 成功訊息
+    }
+```
+
+- `Field(..., gt=0)`：Pydantic 自動驗證 `amount > 0`  
+- `regex="^(USD|EUR|JPY)$"`：僅允許三種貨幣  
+- `check_limits(…)`：自訂的風控邏輯函式
+
+---
+
+### 3. React 訂單列表元件（前端展示與 API 呼叫）
+
+```tsx
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+interface Order {
+  id: string;
+  amount: string;
+  currency: string;
+  status: string;
+}
+
+export default function OrderList() {
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    // 向 Django 後端請求訂單列表
+    axios.get<Order[]>('http://localhost:8000/api/orders/')
+      .then(res => setOrders(res.data))    // 成功後更新狀態
+      .catch(err => console.error(err));   // 錯誤處理
+  }, []);
+
+  return (
+    <ul>
+      {orders.map(o => (
+        <li key={o.id}>
+          {/* 顯示訂單編號、金額、貨幣與狀態 */}
+          {o.id}: {o.amount} {o.currency} — {o.status}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+- `useEffect`：元件掛載後觸發一次  
+- `axios.get`：呼叫 `/api/orders/` 取得資料  
+- `orders.map`：動態渲染每筆訂單
+
+---
+
+### 4. Flutter 簽核流程畫面（行動端導航）
+
+```dart
+import 'package:flutter/material.dart';
+import 'approval_screen.dart';
+
+class OrderListScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final orders = ['order1', 'order2']; // 模擬訂單清單
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Orders')), // 頂部標題列
+      body: ListView(
+        children: orders.map((o) => ListTile(
+          title: Text(o),                     // 顯示訂單 ID
+          onTap: () {
+            // 點擊後導向簽核畫面，帶入 orderId
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ApprovalScreen(orderId: o))
+            );
+          },
+        )).toList(),
+      ),
+    );
+  }
+}
+
+class ApprovalScreen extends StatelessWidget {
+  final String orderId;
+  ApprovalScreen({required this.orderId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Approve $orderId')),  // 顯示訂單 ID
+      body: Center(
+        child: ElevatedButton(
+          child: Text('Approve'),               // 按鈕文字
+          onPressed: () {
+            // TODO: 呼叫後端簽核 API
+          },
+        ),
+      ),
+    );
+  }
+}
+```
+
+- `ListView` + `ListTile`：呈現可點擊清單  
+- `Navigator.push`：使用路由實現畫面跳轉  
+- `ApprovalScreen`：接收 `orderId` 顯示與按鈕執行動作
+
+---
+
 ## 快速上手
 
 ### 1. 複製專案
