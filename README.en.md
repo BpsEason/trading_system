@@ -2,64 +2,173 @@
 
 [![Coverage](https://img.shields.io/badge/coverage-80%25-green)](https://github.com/BpsEason/trading_system)  
 [![Mutation Testing](https://img.shields.io/badge/mutation_testing-Passed-brightgreen)](https://github.com/BpsEason/trading_system)  
-[![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)  
 
-GitHub Repository: https://github.com/BpsEason/trading_system.git  
+Centralize order management, real-time pricing & risk control, instant notifications/approvals—and AI-driven code and test scaffolding for end-to-end coverage from backend to web to mobile.
 
-A unified platform for order CRUD, real-time pricing & risk control, instant notifications/approvals, and AI-driven code & test scaffolding—from web to mobile, end-to-end coverage.
+## Table of Contents
+
+- [AI-Driven Scaffolding & Testing](#ai-driven-scaffolding-testing)  
+- [1. Prompt Templates](#1-prompt-templates)  
+- [2. Automation Script](#2-automation-script)  
+- [3. Running Scaffolding](#3-running-scaffolding)  
+- [4. Generated File Mapping](#4-generated-file-mapping)  
+- [Key Code Examples](#key-code-examples)  
+- [Quick Start](#quick-start)  
+  - [Clone the Repository](#clone-the-repository)  
+  - [Environment Setup](#environment-setup)  
+  - [Install Dependencies](#install-dependencies)  
+  - [Launch Services](#launch-services)  
+- [Testing](#testing)  
+- [CI/CD](#ci-cd)  
+- [Documentation & Visualization](#documentation-visualization)  
+- [Contributing](#contributing)  
+- [License](#license)  
 
 ---
 
-## Directory Structure
+## AI-Driven Scaffolding & Testing
 
+We use OpenAI GPT-4 with custom natural-language prompts and an automation script to generate:
+
+- Backend APIs & tests  
+- React components  
+- Flutter screens  
+
+All with one command.
+
+---
+
+### 1. Prompt Templates
+
+Place human-readable templates in each `prompts/` folder.
+
+- **Django API** (`backend/prompts/api_scaffold_prompt.txt`)
+  ```text
+  Generate a Django REST Framework viewset and serializer for a Product model with:
+  - name: CharField(max_length=100)
+  - description: TextField
+  - price: DecimalField(max_digits=10, decimal_places=2)
+  - stock: IntegerField
+  Provide full CRUD operations.
+  ```
+- **Django Tests** (`backend/prompts/test_case_prompt.txt`)
+  ```text
+  Create pytest cases for OrderViewSet.create:
+  1. Successful order creation.
+  2. Missing user_id validation error.
+  ```
+- **React Component** (`frontend-react/prompts/component_scaffold_prompt.txt`)
+  ```text
+  Generate a React TypeScript functional component named UserList.
+  Props: users: User[] where User has id, name, email.
+  Render each user’s name and email using map, with a unique key.
+  ```
+- **Flutter Screen** (`flutter-app/prompts/screen_scaffold_prompt.txt`)
+  ```text
+  Generate a StatelessWidget named DashboardScreen.
+  Include an AppBar titled "Dashboard" and a Column with:
+  - Text("Welcome to Dashboard!")
+  - Text("Summary data will be here.")
+  ```
+
+---
+
+### 2. Automation Script
+
+`tools/scaffold.py` reads prompts, calls the OpenAI ChatCompletion API, and writes output files:
+
+```python
+import os, openai
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+if not openai.api_key:
+    print("⚠️ OPENAI_API_KEY not set; skipping AI scaffolding.")
+    # Do not exit to avoid CI interruption
+
+def run_prompt(prompt_path, output_path, model="gpt-4-turbo-preview"):
+    prompt = open(prompt_path, encoding="utf-8").read()
+    print(f"🔧 Generating {output_path}")
+    resp = openai.ChatCompletion.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful code generator."},
+            {"role": "user",   "content": prompt}
+        ],
+        temperature=0.2
+    )
+    code = resp.choices[0].message.content
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(code)
+    print(f"✅ Written {output_path}")
+
+if __name__ == "__main__":
+    ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+    run_prompt(f"{ROOT}/backend/prompts/api_scaffold_prompt.txt",
+               f"{ROOT}/backend/django_order_app/views_product.py")
+    run_prompt(f"{ROOT}/backend/prompts/test_case_prompt.txt",
+               f"{ROOT}/backend/django_order_app/tests/test_product_api.py")
+    run_prompt(f"{ROOT}/frontend-react/prompts/component_scaffold_prompt.txt",
+               f"{ROOT}/frontend-react/src/components/UserList.tsx")
+    run_prompt(f"{ROOT}/flutter-app/prompts/screen_scaffold_prompt.txt",
+               f"{ROOT}/flutter-app/lib/screens/dashboard_screen.dart")
 ```
-trading_system/
-├── backend/
-│   ├── django_order_app/         # Django REST API + tests + migrations
-│   ├── fastapi_pricing_service/  # FastAPI pricing & risk + tests
-│   └── prompts/                  # AI scaffolding templates
-├── frontend-react/
-│   ├── src/                      # React + TypeScript source
-│   ├── tests/                    # React unit tests
-│   ├── prompts/                  # AI scaffolding templates
-│   └── .storybook/               # Storybook configuration
-├── flutter-app/
-│   ├── lib/                      # Flutter source (screens, main)
-│   ├── integration_test/         # Flutter integration tests
-│   └── prompts/                  # AI scaffolding templates
-├── docs/                         # API specs, audit log definition, architecture diagram
-├── .github/                      # CI/CD workflows & issue/PR templates
-├── tools/                        # scaffold.py (AI code generator)
-├── docker-compose.yml
-├── .env.example
-├── Makefile
-├── pytest.ini                    # Mutation testing config
-└── LICENSE
+
+---
+
+### 3. Running Scaffolding
+
+Add to `Makefile`:
+
+```makefile
+.PHONY: scaffold
+scaffold:
+    @echo "Starting AI scaffolding..."
+    python tools/scaffold.py
 ```
+
+Run:
+
+```bash
+make scaffold
+```
+
+- If `OPENAI_API_KEY` is missing, the script prints a warning and skips.
+- Generated files appear in their respective folders.
+
+---
+
+### 4. Generated File Mapping
+
+| Prompt Type      | Template Path                                           | Generated File                                          |
+|------------------|---------------------------------------------------------|---------------------------------------------------------|
+| Django API       | `backend/prompts/api_scaffold_prompt.txt`               | `backend/django_order_app/views_product.py`             |
+| Django Test      | `backend/prompts/test_case_prompt.txt`                  | `backend/django_order_app/tests/test_product_api.py`    |
+| React Component  | `frontend-react/prompts/component_scaffold_prompt.txt`  | `frontend-react/src/components/UserList.tsx`            |
+| Flutter Screen   | `flutter-app/prompts/screen_scaffold_prompt.txt`        | `flutter-app/lib/screens/dashboard_screen.dart`         |
 
 ---
 
 ## Key Code Examples
 
-### 1. Django `OrderViewSet` (Order CRUD + Audit Log)
+### Django `OrderViewSet`
 
 ```python
 from rest_framework import viewsets
 from .models import Order
 from .serializers import OrderSerializer
-from .audit import AuditLog  # assumed audit service module
+from .audit import AuditLog
 
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()           # select all orders
-    serializer_class = OrderSerializer       # apply serializer
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
 
     def perform_create(self, serializer):
-        instance = serializer.save()         # save new order
+        instance = serializer.save()
         AuditLog.log_create(self.request.user, instance)
-        # record who/when created which order
 ```
 
-### 2. FastAPI Pricing & Risk Endpoint
+### FastAPI Pricing & Risk Endpoint
 
 ```python
 from fastapi import FastAPI, HTTPException
@@ -67,39 +176,29 @@ from pydantic import BaseModel, Field
 from decimal import Decimal
 from .risk import check_limits
 
-app = FastAPI(title="Pricing Service")
+app = FastAPI()
 
 class PriceRequest(BaseModel):
-    user_id: str       = Field(..., example="user123", description="User ID")
-    amount: Decimal    = Field(..., gt=0, description="Trade amount (>0)")
-    currency: str      = Field(..., regex="^(USD|EUR|JPY)$", description="Currency code")
+    user_id: str    = Field(..., example="user123")
+    amount: Decimal = Field(..., gt=0)
+    currency: str   = Field(..., regex="^(USD|EUR|JPY)$")
 
 @app.post("/price")
 async def price(req: PriceRequest):
     allowed, msg = check_limits(req.amount, req.currency)
     if not allowed:
         raise HTTPException(status_code=400, detail={"message": msg})
-
-    final_price = req.amount * Decimal("1.001")  # simple 0.1% markup
-    return {
-        "allowed": True,
-        "price": final_price,
-        "message": "Trade approved"
-    }
+    final_price = req.amount * Decimal("1.001")
+    return {"allowed": True, "price": final_price, "message": "Trade approved"}
 ```
 
-### 3. React `OrderList` Component
+### React `OrderList` Component
 
 ```tsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-interface Order {
-  id: string;
-  amount: string;
-  currency: string;
-  status: string;
-}
+interface Order { id: string; amount: string; currency: string; status: string; }
 
 export default function OrderList() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -122,87 +221,48 @@ export default function OrderList() {
 }
 ```
 
-### 4. Flutter `OrderListScreen` & `ApprovalScreen`
+### Flutter Order Screens
 
 ```dart
-// lib/screens/order_list.dart
-import 'package:flutter/material.dart';
-import 'approval_screen.dart';
-
-class OrderListScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final orders = ['order1', 'order2'];
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Orders')),
-      body: ListView(
-        children: orders.map((o) => ListTile(
-          title: Text(o),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ApprovalScreen(orderId: o))
-          ),
-        )).toList(),
+// order_list.dart
+ListView(
+  children: ['order1','order2'].map((o) =>
+    ListTile(
+      title: Text(o),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ApprovalScreen(orderId: o))
       ),
-    );
-  }
-}
-
-// lib/screens/approval_screen.dart
-import 'package:flutter/material.dart';
-
-class ApprovalScreen extends StatelessWidget {
-  final String orderId;
-  ApprovalScreen({required this.orderId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Approve $orderId')),
-      body: Center(
-        child: ElevatedButton(
-          child: Text('Approve'),
-          onPressed: () {
-            // TODO: call backend approval API
-          },
-        ),
-      ),
-    );
-  }
-}
+    )
+  ).toList(),
+);
 ```
 
 ---
 
 ## Quick Start
 
-### 1. Clone
+### Clone the Repository
 
 ```bash
 git clone https://github.com/BpsEason/trading_system.git
 cd trading_system
 ```
 
-### 2. Environment
+### Environment Setup
 
 Copy and fill in `.env` from `.env.example`.  
-Set `OPENAI_API_KEY` to enable AI scaffolding.
+Ensure `OPENAI_API_KEY` is set to enable AI scaffolding.
 
-### 3. Install Dependencies
+### Install Dependencies
 
 ```bash
-# Backend
 make install_backend_deps
-
-# Frontend
 make install_frontend_deps
-
-# Flutter
 make install_flutter_deps
 ```
 
-### 4. Launch Services
+### Launch Services
 
 #### Docker Compose (Recommended)
 
@@ -237,20 +297,11 @@ docker-compose up -d --build
   flutter run
   ```
 
-### 5. Generate AI Code Scaffolding
+### Generate AI-Powered Scaffolding
 
 ```bash
 make scaffold
 ```
-
-This calls `tools/scaffold.py` to read prompts and output:
-
-| Prompt Type     | Template Path                                           | Generated File                                           |
-|-----------------|---------------------------------------------------------|----------------------------------------------------------|
-| Django API      | backend/prompts/api_scaffold_prompt.txt                 | backend/django_order_app/views_product.py                |
-| Django Test     | backend/prompts/test_case_prompt.txt                    | backend/django_order_app/tests/test_product_api.py       |
-| React Component | frontend-react/prompts/component_scaffold_prompt.txt    | frontend-react/src/components/UserList.tsx               |
-| Flutter Screen  | flutter-app/prompts/screen_scaffold_prompt.txt          | flutter-app/lib/screens/dashboard_screen.dart            |
 
 ---
 
@@ -287,7 +338,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on each push/PR:
 
 ---
 
-## Documentation
+## Documentation & Visualization
 
 - API Specs → `docs/API_SPEC.md`  
 - Audit Log Definition → `docs/AUDIT_LOG_DEFINITION.md`  
@@ -298,7 +349,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on each push/PR:
 
 ## Contributing
 
-See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` for guidelines.
+Please refer to `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
 
 ---
 
