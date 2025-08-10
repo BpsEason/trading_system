@@ -1,0 +1,4 @@
+請為 Django REST Framework 中的 `OrderViewSet` 的 `create` 操作生成一個 pytest 測試案例。
+測試場景：
+1. 成功建立一個有效訂單。
+2. 嘗試建立一個無效訂單（例如：缺少 user_id）。

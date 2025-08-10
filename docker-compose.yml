@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: trading_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432" # 僅在本地開發時暴露端口
+
+  django:
+    build:
+      context: .
+      dockerfile: backend/django_order_app/Dockerfile
+    command: >
+      sh -c "python django_order_app/manage.py migrate &&
+             python django_order_app/manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend/django_order_app:/app/django_order_app
+      - ./backend/requirements.txt:/tmp/requirements.txt
+      - ./backend/tests:/app/tests # Mount tests for consistent path
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/trading_db
+      DJANGO_SETTINGS_MODULE: django_order_app.settings
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: backend/fastapi_pricing_service/Dockerfile
+    command: uvicorn fastapi_pricing_service.main:app --host 0.0.0.0 --port 8001 --reload
+    volumes:
+      - ./backend/fastapi_pricing_service:/app/fastapi_pricing_service
+      - ./backend/requirements.txt:/tmp/requirements.txt
+      - ./backend/tests:/app/tests # Mount tests for consistent path
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+    environment:
+      # 環境變數可以在此處定義，例如資料庫連接字串 (如果 FastAPI 需要)
+      # DATABASE_URL: postgres://user:password@db:5432/trading_db
+      # For simplicity, FastAPI example doesn't directly use DB yet
+      FASTAPI_DEBUG: "true"
+
+volumes:
+  pg_data:

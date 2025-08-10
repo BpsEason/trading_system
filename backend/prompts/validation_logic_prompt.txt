@@ -1,0 +1,5 @@
+請為 FastAPI 中的 `Order` 模型（包含 `amount` 和 `currency` 欄位）生成一個 Python 驗證函數。
+驗證邏輯：
+1. `amount` 必須大於 0。
+2. `currency` 必須是 'USD', 'EUR', 或 'JPY' 之一。
+如果驗證失敗，請返回錯誤訊息。

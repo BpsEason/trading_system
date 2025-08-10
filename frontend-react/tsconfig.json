@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "ESNext",
+    "jsx": "react-jsx",
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./src",
+    "lib": ["dom", "dom.iterable", "esnext"]
+  },
+  "include": ["src", "tests", ".storybook", "jest-setup.ts"], # 確保包含所有相關檔案
+  "exclude": ["node_modules", "dist"]
+}
