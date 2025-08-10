@@ -1,191 +1,186 @@
 # 智能交易訂單管理系統
 
-[![CI](https://github.com/your-username/trading_system/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/trading_system/actions/workflows/ci.yml)  
-[![Coverage](https://img.shields.io/badge/coverage-80%25-green)](https://github.com/your-username/trading_system)  
-[![Mutation Testing](https://img.shields.io/badge/mutation_testing-Passed-brightgreen)](https://github.com/your-username/trading_system)  
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![CI](https://github.com/BpsEason/trading_system/actions/workflows/ci.yml/badge.svg)](https://github.com/BpsEason/trading_system/actions/workflows/ci.yml)  
+[![Coverage](https://img.shields.io/badge/coverage-80%25-green)](https://github.com/BpsEason/trading_system)  
+[![Mutation Testing](https://img.shields.io/badge/mutation_testing-Passed-brightgreen)](https://github.com/BpsEason/trading_system)  
+[![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)  
 
-一體化平台，集訂單 CRUD、實時計價風控、即時通知簽核與 AI 自動生成骨架，從 Web 到行動端無縫覆蓋。
+GitHub 倉庫：https://github.com/BpsEason/trading_system.git  
+
+一站式訂單管理平台，結合 Django、FastAPI、React、Flutter 與 AI 自動生成，從 Web 端到行動端全棧覆蓋，秒級部署、樣板代碼一鍵到位。
 
 ---
 
-## 關鍵代碼示例
+## 核心亮點：AI 代碼骨架生成功能
 
-### 1. Django OrderViewSet
+1. **Prompt 驅動**  
+   - Backend: `backend/prompts/api_scaffold_prompt.txt`、`backend/prompts/test_case_prompt.txt`  
+   - Web 前端: `frontend-react/prompts/component_scaffold_prompt.txt`  
+   - 行動端: `flutter-app/prompts/screen_scaffold_prompt.txt`  
 
-```python
-# views.py
-from rest_framework import viewsets
-from .models import Order
-from .serializers import OrderSerializer
+2. **一鍵 Scaffold**  
+   ```bash
+   make scaffold
+   ```
+   透過 `tools/scaffold.py` 調用 OpenAI GPT-4，低溫度（temperature=0.2）保證輸出穩定，產出對應程式與測試。
 
-class OrderViewSet(viewsets.ModelViewSet):
-    # 指定查詢集，讀取所有訂單
-    queryset = Order.objects.all()
-    # 指定序列化器，處理輸入驗證與輸出格式
-    serializer_class = OrderSerializer
+3. **自動生成檔案（示例）**  
+   - `backend/django_order_app/views_product.py`  
+   - `backend/django_order_app/tests/test_product_api.py`  
+   - `frontend-react/src/components/UserList.tsx`  
+   - `flutter-app/lib/screens/dashboard_screen.dart`  
 
-    def perform_create(self, serializer):
-        # 自訂建立時機：建立後自動寫入審計日誌
-        instance = serializer.save()
-        AuditLog.log_create(self.request.user, instance)
+4. **免中斷設計**  
+   若未設定 `OPENAI_API_KEY`，只輸出警告並略過，不影響 CI/CD 流程。
+
+---
+
+## 系統架構概覽
+
+```mermaid
+graph LR
+  subgraph Clients
+    Web[React Web UI]
+    Mobile[Flutter App]
+  end
+
+  subgraph Backend
+    Web -->|HTTP/API| Django[Django Order App]
+    Web -->|HTTP/API| FastAPI[FastAPI Pricing Service]
+    Mobile -->|HTTP/API| Django
+    Mobile -->|HTTP/API| FastAPI
+  end
+
+  subgraph DataStores
+    Django --> Postgres[(PostgreSQL)]
+    FastAPI --> Postgres
+    Django --> Audit[Audit Log Service]
+    FastAPI --> Audit
+    Audit --> QLDB[(QLDB / ELK)]
+  end
+
+  subgraph AI/DevOps
+    Prompts[Prompts 資料夾] --> Scaffolder[tools/scaffold.py]
+    Scaffolder --> Repo[Source Code]
+    Repo --> CI[GitHub Actions]
+  end
 ```
 
-> 上述程式碼展示如何在 `perform_create` 中插入審計邏輯，確保所有訂單操作都有不可篡改的日誌。
-
 ---
 
-### 2. FastAPI 定價與風控接口
+## 專案結構
 
-```python
-# main.py
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from .risk import check_limits
-
-app = FastAPI()
-
-class PriceRequest(BaseModel):
-    user_id: str
-    amount: float
-    currency: str
-
-@app.post("/price")
-async def price(req: PriceRequest):
-    # 驗證限額
-    ok, msg = check_limits(req.amount, req.currency)
-    if not ok:
-        # 超限時拋出 400 錯誤
-        raise HTTPException(status_code=400, detail=msg)
-    # 計算最終價格（示意）
-    return {"allowed": True, "price": req.amount * 1.01}
+```
+trading_system/
+├── backend/
+│   ├── django_order_app/       # Django CRUD + 測試
+│   ├── fastapi_pricing_service/# FastAPI 定價與風控
+│   └── prompts/                # AI scaffold 範本
+├── frontend-react/
+│   ├── src/components/         # React 元件
+│   └── prompts/                # AI scaffold 範本
+├── flutter-app/
+│   ├── lib/screens/            # Flutter 畫面
+│   └── prompts/                # AI scaffold 範本
+├── tools/
+│   └── scaffold.py             # AI 代碼生成腳本
+├── .github/
+│   └── workflows/ci.yml        # CI/CD
+├── docs/                       # API 規格、架構圖
+├── docker-compose.yml
+├── Makefile
+└── LICENSE
 ```
 
-> 使用 Pydantic 模型確保請求格式正確，透過自訂例外實現簡潔的風控反饋。
-
 ---
 
-### 3. React 訂單列表元件
+## 快速上手
 
-```tsx
-// src/components/OrderList.tsx
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+1. Clone 倉庫  
+   ```bash
+   git clone https://github.com/BpsEason/trading_system.git
+   cd trading_system
+   ```
 
-interface Order {
-  id: string;
-  amount: string;
-  currency: string;
-  status: string;
-}
+2. 建立環境變數  
+   ```bash
+   cp .env.example .env
+   # 設置 OPENAI_API_KEY 以啟用 AI scaffold
+   ```
 
-export default function OrderList() {
-  const [orders, setOrders] = useState<Order[]>([]);
+3. 安裝依賴（非 Docker）  
+   ```bash
+   make install_backend_deps
+   make install_frontend_deps
+   make install_flutter_deps
+   ```
 
-  useEffect(() => {
-    // 向後端請求訂單列表
-    axios.get<Order[]>('http://localhost:8000/api/orders/')
-      .then(res => setOrders(res.data))
-      .catch(console.error);
-  }, []);
+4. 啟動服務  
+   - **Docker Compose（推薦）**  
+     ```bash
+     docker-compose up -d --build
+     ```  
+   - **非 Docker**  
+     - Django:  
+       ```bash
+       cd backend/django_order_app
+       python manage.py migrate
+       python manage.py runserver
+       ```  
+     - FastAPI:  
+       ```bash
+       cd backend/fastapi_pricing_service
+       uvicorn main:app --reload
+       ```  
+     - React:  
+       ```bash
+       cd frontend-react
+       npm start
+       ```  
+     - Flutter:  
+       ```bash
+       cd flutter-app
+       flutter run
+       ```
 
-  return (
-    <ul>
-      {orders.map(o => (
-        <li key={o.id}>
-          {/* 顯示訂單摘要 */}
-          {o.id}: {o.amount} {o.currency} — {o.status}
-        </li>
-      ))}
-    </ul>
-  );
-}
-```
+5. 一鍵生成骨架  
+   ```bash
+   make scaffold
+   ```
 
-> 實際開發中，可搭配 Storybook 撰寫相應的元件示例與測試。
-
----
-
-### 4. Flutter 行動端簽核畫面
-
-```dart
-// lib/screens/order_list.dart
-import 'package:flutter/material.dart';
-import 'approval_screen.dart';
-
-class OrderListScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final orders = ['order1', 'order2']; // 模擬資料
-
-    return Scaffold(
-      appBar: AppBar(title: Text('訂單列表')),
-      body: ListView(
-        children: orders.map((o) => ListTile(
-          title: Text(o),
-          onTap: () {
-            // 點擊後導向簽核畫面
-            Navigator.push(context,
-              MaterialPageRoute(builder: (_) => ApprovalScreen(orderId: o)));
-          },
-        )).toList(),
-      ),
-    );
-  }
-}
-```
-
-> 以上結合 `Navigator` 實現畫面切換，API 呼叫可在 `ApprovalScreen` 中補充完成。
-
----
-
-## 問與答 (Q&A)
-
-| 問題                                             | 回答                                                                                                                                       |
-|--------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| 為何同時採用 Django 與 FastAPI？                 | Django 適合快速構建 CRUD 與自動管理後台，FastAPI 提供非同步與高併發定價／風控邏輯。二者互補，提升開發效率與執行效能。                           |
-| 如何實現實時通知？                               | 後端透過 Django Channels + Redis Pub/Sub 將訂單異動推送 WebSocket，前端訂閱後即時更新；手機端使用 Push Notification。                       |
-| AI scaffold 如何融入開發流程？                   | `tools/scaffold.py` 讀取 `prompts/` 目錄下的範本，呼叫 OpenAI 完成骨架程式與測試生成，`make scaffold` 一鍵執行，減少樣板代碼耗時。              |
-| 測試強度如何保證？                               | 結合 pytest、Jest、Flutter Test 並加入 Mutation Testing，最低覆蓋率 ≥ 80%，確保業務邏輯分支與邊界都被測試到。                                |
-| CI/CD 如何無縫串接？                             | GitHub Actions 在每次 push 或 PR 自動運行 lint、單元測試、Mutation Test 及 commitlint，確保主分支始終保持可部署狀態；並可延伸至 Kubernetes。 |
-
----
-
-## 技術棧
-
-| 範疇         | 技術                                                         |
-|------------|------------------------------------------------------------|
-| 後端         | Python 3.10 · Django 3.2 · Django REST Framework · FastAPI · Uvicorn |
-| 資料庫       | PostgreSQL · Amazon QLDB (審計日誌)                            |
-| 前端 (Web)   | React 18 · TypeScript · Storybook · Axios                    |
-| 行動端       | Flutter 3.x · Dart · http                                     |
-| AI 工具      | OpenAI GPT-4 · 自動 scaffold 腳本                             |
-| CI/CD      | GitHub Actions · Docker Compose                              |
-| 測試框架      | pytest · pytest-django · pytest-mutation · Jest · @testing-library · Flutter Test |
-| 監控告警      | Prometheus · Grafana · Slack Webhook                          |
-
----
-
-## 快速啟動
-
-1. git clone + `.env`  
-2. `docker-compose up -d --build`  
-3. 訪問  
-   - Web UI：`http://localhost:3000`  
-   - Django API：`http://localhost:8000/api/`  
+6. 訪問服務  
+   - Django REST API：`http://localhost:8000/api/`  
    - FastAPI Docs：`http://localhost:8001/docs`  
+   - React UI：`http://localhost:3000`  
    - Storybook：`http://localhost:6006`
 
 ---
 
-## 未來規劃
+## 測試與品質保證
 
-- 即時分析圖表：整合 ECharts/Highcharts  
-- Kubernetes ✕ 多雲部署：Terraform + Helm  
-- AI 強化：異常偵測、自動回滾策略生成  
+- 一鍵測試  
+  ```bash
+  make test
+  ```
+- Mutation Testing 配置：`pytest.ini`  
+- Lint & Format：`make lint`、`make fmt`
+
+---
+
+## 文件資源
+
+- API 規格：`docs/API_SPEC.md`  
+- 審計日誌定義：`docs/AUDIT_LOG_DEFINITION.md`  
+- 系統架構圖：`docs/ARCHITECTURE.md`  
+
+---
+
+## 貢獻指南
+
+請參考 `CONTRIBUTING.md` 與 `CODE_OF_CONDUCT.md`，遵循流程提交 Issue／PR。
 
 ---
 
 ## 授權
 
-採用 MIT License，詳見 `LICENSE`。
+本專案採用 MIT License，詳見 `LICENSE`。
