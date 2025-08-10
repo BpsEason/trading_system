@@ -1,0 +1,9 @@
+Django>=3.2
+djangorestframework
+fastapi
+uvicorn
+pytest
+pytest-django
+pytest-mutation
+dj-database-url
+psycopg2-binary

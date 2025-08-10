@@ -1,0 +1,8 @@
+請根據以下描述為 Django REST Framework 生成一個新的 API 視圖與序列化器：
+模型名稱：Product
+欄位：
+- name (CharField, max_length=100)
+- description (TextField)
+- price (DecimalField, max_digits=10, decimal_places=2)
+- stock (IntegerField)
+需求：提供所有 CRUD 操作的 API。

@@ -1,0 +1,5 @@
+請生成一個 Flutter 螢幕 (`StatelessWidget`)，用於顯示一個簡單的 Dashboard。
+需求：
+- 螢幕名稱：DashboardScreen
+- 包含一個 `AppBar` 標題為 "Dashboard"。
+- 身體部分包含一個 `Column`，內部有兩個 `Text` 小部件，分別顯示 "Welcome to Dashboard!" 和 "Summary data will be here."。
