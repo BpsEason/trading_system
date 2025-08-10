@@ -13,6 +13,148 @@
 - `.github/` GitHub Actions CI/CD 工作流與專案模板
 - `tools/` 專案開發輔助腳本，包含 AI 代碼生成工具
 
+## AI 自動生成骨架與測試：從後端到前端再到行動端
+
+利用 OpenAI GPT-4 結合自訂 Prompt 與自動化腳本，讓專案「後端 API」、「前端元件」及「Flutter 畫面」的樣板程式與測試案例一鍵生成。以下說明完整流程與關鍵程式。
+
+---
+
+### 1. Prompt 範本撰寫
+
+將需求以自然語言寫入各子專案的 `prompts/` 資料夾，以模板驅動生成。  
+- **Django 後端 API**  
+  `backend/prompts/api_scaffold_prompt.txt`  
+  ```text
+  請根據以下描述為 Django REST Framework 生成一個新的 API 視圖與序列化器：
+  模型名稱：Product
+  欄位：
+  - name (CharField, max_length=100)
+  - description (TextField)
+  - price (DecimalField, max_digits=10, decimal_places=2)
+  - stock (IntegerField)
+  需求：提供所有 CRUD 操作的 API。
+  ```
+- **Django 後端測試**  
+  `backend/prompts/test_case_prompt.txt`  
+  ```text
+  請為 Django REST Framework 中的 OrderViewSet 的 create 操作
+  生成一個 pytest 測試案例，涵蓋成功建立與缺少 user_id 的場景。
+  ```
+- **React 前端元件**  
+  `frontend-react/prompts/component_scaffold_prompt.txt`  
+  ```text
+  請生成一個 React TypeScript 功能型元件 UserList，
+  接收 props `users: User[]`（含 id、name、email），
+  並 map 渲染姓名與郵件。
+  ```
+- **Flutter 畫面**  
+  `flutter-app/prompts/screen_scaffold_prompt.txt`  
+  ```text
+  請生成一個 StatelessWidget DashboardScreen，
+  包含 AppBar 標題“Dashboard”，以及 Column 內兩行 Text，
+  顯示 “Welcome to Dashboard!” 與 “Summary data will be here.”。
+  ```
+
+---
+
+### 2. 自動化腳本 `tools/scaffold.py`
+
+核心邏輯：讀取各 Prompt，呼叫 OpenAI ChatCompletion API，將回應寫入指定檔案。  
+
+```python
+import os, openai
+
+# 從環境變數讀取 API Key
+openai.api_key = os.getenv("OPENAI_API_KEY")
+if not openai.api_key:
+    print("⚠️ 警告：未設定 OPENAI_API_KEY，跳過 AI 生成功能。")
+    # 不中斷腳本，以避免阻塞 CI
+
+def run_prompt(prompt_path: str, output_path: str, model: str="gpt-4-turbo-preview"):
+    # 讀取 Prompt
+    prompt = open(prompt_path, encoding="utf-8").read()
+    print(f"🔧 正在生成：{output_path}")
+    resp = openai.ChatCompletion.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a helpful code generator."},
+            {"role": "user",   "content": prompt}
+        ],
+        temperature=0.2  # 低溫度提升輸出一致性
+    )
+    code = resp.choices[0].message.content
+    # 寫入檔案
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(code)
+    print(f"✅ 已寫入：{output_path}")
+
+if __name__ == "__main__":
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+    # Django API 與測試
+    run_prompt(
+        os.path.join(PROJECT_ROOT, "backend/prompts/api_scaffold_prompt.txt"),
+        os.path.join(PROJECT_ROOT, "backend/django_order_app/views_product.py")
+    )
+    run_prompt(
+        os.path.join(PROJECT_ROOT, "backend/prompts/test_case_prompt.txt"),
+        os.path.join(PROJECT_ROOT, "backend/django_order_app/tests/test_product_api.py")
+    )
+
+    # React 元件
+    run_prompt(
+        os.path.join(PROJECT_ROOT, "frontend-react/prompts/component_scaffold_prompt.txt"),
+        os.path.join(PROJECT_ROOT, "frontend-react/src/components/UserList.tsx")
+    )
+
+    # Flutter 螢幕
+    run_prompt(
+        os.path.join(PROJECT_ROOT, "flutter-app/prompts/screen_scaffold_prompt.txt"),
+        os.path.join(PROJECT_ROOT, "flutter-app/lib/screens/dashboard_screen.dart")
+    )
+```
+
+---
+
+### 3. 執行方式
+
+在專案根目錄的 `Makefile` 中定義：
+
+```makefile
+.PHONY: scaffold
+scaffold:  ## 根據 prompts 自動生成程式碼骨架
+    @echo "開始 AI 自動 scaffold..."
+    python tools/scaffold.py
+```
+
+執行：
+
+```bash
+make scaffold
+```
+
+- 若未設定 `OPENAI_API_KEY`，腳本會跳過生成並顯示警告。
+- 完成後，自動在相應位置新增樣板程式與測試。
+
+---
+
+### 4. 生成檔案對照
+
+| Prompt 類型       | Prompt 檔案路徑                                           | 生成結果檔案                                        |
+|----------------|-------------------------------------------------------|-------------------------------------------------|
+| Django API     | `backend/prompts/api_scaffold_prompt.txt`             | `backend/django_order_app/views_product.py`     |
+| Django Test    | `backend/prompts/test_case_prompt.txt`                | `backend/django_order_app/tests/test_product_api.py` |
+| React Component| `frontend-react/prompts/component_scaffold_prompt.txt`| `frontend-react/src/components/UserList.tsx`    |
+| Flutter Screen | `flutter-app/prompts/screen_scaffold_prompt.txt`      | `flutter-app/lib/screens/dashboard_screen.dart` |
+
+---
+
+### 5. 與 CI/CD 整合
+
+建議在 Pull Request 流程中，於測試前或檢查階段運行 `make scaffold`，並將生成結果納入版本控制，比對有無差異，確保 Prompt 與程式碼始終同步。
+
+---
+
 ## 關鍵程式碼範例
 
 ---
