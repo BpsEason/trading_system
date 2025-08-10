@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+
+# Node
+node_modules/
+dist/
+npm-debug.log*
+.eslintcache
+
+# Flutter
+build/
+.flutter-plugins
+.pub-cache/
+.packages
+
+# IDE
+.vscode/
+.idea/
+
+# Docker
+docker-compose.override.yml
+*.env
+
+# Storybook
+.storybook/storybook-static/
