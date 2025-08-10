@@ -323,7 +323,7 @@ class ApprovalScreen extends StatelessWidget {
 
 ### 1. 複製專案
 ```bash
-git clone [https://github.com/你的帳號/trading_system.git](https://github.com/你的帳號/trading_system.git)
+git clone https://github.com/BpsEason/trading_system.git
 cd trading_system
 ```
 
