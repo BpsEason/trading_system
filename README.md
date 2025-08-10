@@ -1,11 +1,7 @@
 # 智能交易訂單管理系統
-
-[![CI](https://github.com/BpsEason/trading_system/actions/workflows/ci.yml/badge.svg)](https://github.com/BpsEason/trading_system/actions/workflows/ci.yml)  
 [![Coverage](https://img.shields.io/badge/coverage-80%25-green)](https://github.com/BpsEason/trading_system)  
 [![Mutation Testing](https://img.shields.io/badge/mutation_testing-Passed-brightgreen)](https://github.com/BpsEason/trading_system)  
 [![MIT License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)  
-
-GitHub 倉庫：https://github.com/BpsEason/trading_system.git  
 
 一站式訂單管理平台，結合 Django、FastAPI、React、Flutter 與 AI 自動生成，從 Web 端到行動端全棧覆蓋，秒級部署、樣板代碼一鍵到位。
 
