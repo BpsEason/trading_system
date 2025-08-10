@@ -1,4 +1,3 @@
-```markdown
 # 智能交易訂單管理系統
 
 [![CI](https://github.com/your-username/trading_system/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/trading_system/actions/workflows/ci.yml)  
@@ -73,7 +72,6 @@ graph TD
 
   Django -.-> Web
   Django -.-> Mobile
-```
 
 ---
 
